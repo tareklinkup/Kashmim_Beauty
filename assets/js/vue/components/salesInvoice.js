@@ -20,12 +20,16 @@ const salesInvoice = Vue.component('sales-invoice', {
                         <strong>Customer Id:</strong> {{ sales.Customer_Code }}<br>
                         <strong>Customer Name:</strong> {{ sales.Customer_Name }}<br>
                         <strong>Customer Address:</strong> {{ sales.Customer_Address }}<br>
-                        <strong>Customer Mobile:</strong> {{ sales.Customer_Mobile }}
+                        <strong>Customer Mobile:</strong> {{ sales.Customer_Mobile }} <br>
+                        <strong>Sales Date:</strong> {{ sales.SaleMaster_SaleDate }} {{ sales.AddTime | formatDateTime('h:mm a') }}
                     </div>
                     <div class="col-xs-5 text-right">
                         <strong>Sales by:</strong> {{ sales.AddBy }}<br>
                         <strong>Invoice No.:</strong> {{ sales.SaleMaster_InvoiceNo }}<br>
-                        <strong>Sales Date:</strong> {{ sales.SaleMaster_SaleDate }} {{ sales.AddTime | formatDateTime('h:mm a') }}
+                        <strong>Courier Name :</strong> {{ sales.Courier_Name }}<br>
+                        <strong>Courier No :</strong> {{ sales.courierNo }}<br>
+                        <strong>Payment Type :</strong> {{ sales.payment_type }}<br>
+                        <strong v-if="sales.payment_type == 'bank'">Bank Name :</strong> {{ sales.account_name }}<br>
                     </div>
                 </div>
                 <div class="row">

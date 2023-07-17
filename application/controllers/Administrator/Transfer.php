@@ -352,4 +352,291 @@
 
             echo json_encode($res);
         }
+
+        // Cash Transfer 
+
+         public function cashTransfer(){
+            $access = $this->mt->userAccess();
+            if(!$access){
+                redirect(base_url());
+            }
+            $data['title'] = "Cash Transfer";
+            $data['content'] = $this->load->view('Administrator/transfer/cash_transfer', $data, TRUE);
+            $this->load->view('Administrator/index', $data);
+        }
+
+
+        public function addCashTransfer()
+        {
+            $res = ['success'=>false, 'message'=>''];
+            try{
+                $data = json_decode($this->input->raw_input_stream);
+                $transfer = (array) $data->transfer;
+                $transfer['transfer_from'] = $this->session->userdata('BRANCHid');
+                $transfer['added_by'] = $this->session->userdata("FullName");
+                $transfer['added_datetime'] = date("Y-m-d H:i:s");
+                $transfer['status'] = 'p';
+
+                $this->db->insert('tbl_cashtransfer', $transfer);
+
+                $res = ['success'=>true, 'message'=>'Transfer success'];
+            } catch (Exception $ex){
+                $res = ['success'=>false, 'message'=>$ex->getMessage];
+            }
+
+            echo json_encode($res);
+        }
+
+
+        public function getCashTransfer()
+        {
+            $data = json_decode($this->input->raw_input_stream);
+
+            if(isset($data->branchId) && $data->branchId != '')
+            {
+                $branchId = $data->branchId;
+            }else {
+                $branchId = $this->session->userdata('BRANCHid');
+            }
+
+            $clauses = "";
+            if(isset($data->branch) && $data->branch != ''){
+                $clauses .= " and tm.transfer_to = '$data->branch'";
+            }
+
+            if((isset($data->dateFrom) && $data->dateFrom != '') && (isset($data->dateTo) && $data->dateTo != '')){
+                $clauses .= " and tm.transfer_date between '$data->dateFrom' and '$data->dateTo'";
+            }
+            
+            if(isset($data->date) && $data->date != ''){
+                $clauses .= " and tm.transfer_date = '$data->date'";
+            }
+
+            if(isset($data->userFullName) && $data->userFullName != ''){
+                $clauses .= " and tm.added_by = '$data->userFullName'";
+            }
+
+
+            $transfers = $this->db->query("
+                select
+                    tm.*,
+                    b.Brunch_name as transfer_to_name,
+                    e.Employee_Name as transfer_by_name
+                from tbl_cashtransfer tm
+                join tbl_brunch b on b.brunch_id = tm.transfer_to
+                left join tbl_employee e on e.Employee_SlNo = tm.transfer_by
+                where tm.transfer_from = '$branchId' 
+                and tm.status != 'd'
+                $clauses
+            ")->result();
+
+            // $transfers = array_values($transfers);
+            echo json_encode($transfers);
+        } 
+
+        public function getCashTransfersPending()
+        {
+            $data = json_decode($this->input->raw_input_stream);
+
+            if(isset($data->branchId) && $data->branchId != '')
+            {
+                $branchId = $data->branchId;
+            }else {
+                $branchId = $this->session->userdata('BRANCHid');
+            }
+
+            $clauses = "";
+            if(isset($data->branch) && $data->branch != ''){
+                $clauses .= " and tm.transfer_to = '$data->branch'";
+            }
+
+            if((isset($data->dateFrom) && $data->dateFrom != '') && (isset($data->dateTo) && $data->dateTo != '')){
+                $clauses .= " and tm.transfer_date between '$data->dateFrom' and '$data->dateTo'";
+            }
+            
+            if(isset($data->date) && $data->date != ''){
+                $clauses .= " and tm.transfer_date = '$data->date'";
+            }
+
+
+            $transfers = $this->db->query("
+                select
+                    tm.*,
+                    b.Brunch_name as transfer_to_name,
+                    e.Employee_Name as transfer_by_name
+                from tbl_cashtransfer tm
+                join tbl_brunch b on b.brunch_id = tm.transfer_to
+                left join tbl_employee e on e.Employee_SlNo = tm.transfer_by
+                where tm.transfer_to = '$branchId' 
+                and tm.status = 'p'
+                $clauses
+            ")->result();
+
+            // $transfers = array_values($transfers);
+            echo json_encode($transfers);
+        } 
+
+        public function approveCashTransfer()
+        {
+            $res = ['success' => false, 'message' => ''];
+            $data = json_decode($this->input->raw_input_stream);
+            try{
+
+                // $this->db->query("UPDATE TABLE tbl_cashtransfer set status = 'a' WHERE transfer_id = '$data->transferId' ");
+                $this->db->set('status', 'a')->where('transfer_id', $data->transfer->transfer_id)->update('tbl_cashtransfer');
+
+                $res = ['success' => true, 'message' => 'Cash Transfer Approved'];
+            }catch (Exception $ex){
+                $res = ['success' => false, 'message' => $ex->getMessage];
+            }
+
+            echo json_encode($res);
+        }
+        
+        public function getCashTransferReceived()
+        {
+            $data = json_decode($this->input->raw_input_stream);
+
+            $clauses = "";
+          
+            if((isset($data->dateFrom) && $data->dateFrom != '') && (isset($data->dateTo) && $data->dateTo != '')){
+                $clauses .= " and tm.transfer_date between '$data->dateFrom' and '$data->dateTo'";
+            }
+            
+            if(isset($data->date) && $data->date != ''){
+                $clauses .= " and tm.transfer_date = '$data->date'";
+            }
+
+            if(isset($data->userFullName) && $data->userFullName != ''){
+                $clauses .= " and tm.added_by = '$data->userFullName'";
+            }
+
+
+            $transfers = $this->db->query("
+                select
+                    tm.*,
+                    b.Brunch_name as transfer_to_name,
+                    e.Employee_Name as transfer_by_name
+                from tbl_cashtransfer tm
+                join tbl_brunch b on b.brunch_id = tm.transfer_to
+                left join tbl_employee e on e.Employee_SlNo = tm.transfer_by
+                where tm.transfer_to = ? $clauses
+                and tm.status != 'd'
+            ", $this->session->userdata('BRANCHid'))->result();
+
+            echo json_encode($transfers);
+        }
+
+        public function updateCashTransfer()
+        {
+            $res = ['success'=>false, 'message'=>''];
+            try{
+                $data = json_decode($this->input->raw_input_stream);
+                $transfer = (array) $data->transfer;
+                unset($transfer['transfer_id']);
+                $transfer['updated_by'] = $this->session->userdata('userId');
+                $transfer['updated_datetime'] = date("Y-m-d H:i:s");
+
+                $this->db->where('transfer_id', $data->transfer->transfer_id);
+                $this->db->update('tbl_cashtransfer', $transfer);
+
+                $res = ['success'=>true, 'message'=>'Updated success'];
+            } catch (Exception $ex){
+                $res = ['success'=>false, 'message'=>$ex->getMessage];
+            }
+
+            echo json_encode($res);
+        }
+
+        public function deleteCashTransfer()
+        {
+            $res = ['success'=>false, 'message'=>''];
+            try{
+                $data = json_decode($this->input->raw_input_stream);
+
+                $this->db->query("DELETE from tbl_cashtransfer where transfer_id = $data");
+
+                $res = ['success'=>true, 'message'=>'Transfer Deleted'];
+            } catch (Exception $ex){
+                $res = ['success'=>false, 'message'=>$ex->getMessage()];
+            }
+
+            echo json_encode($res);
+        }
+
+
+        public function cashTransferRecord()
+        {
+            $access = $this->mt->userAccess();
+            if(!$access){
+                redirect(base_url());
+            }
+            $data['title'] = "Cash Transfer List";
+            $data['content'] = $this->load->view('Administrator/transfer/cash_transfer_record', $data, true);
+            $this->load->view('Administrator/index', $data);
+        }
+
+
+        public function cashTransferPending()
+        {
+            $access = $this->mt->userAccess();
+            if(!$access){
+                redirect(base_url());
+            }
+            $data['title'] = "Cash Transfer Pending";
+            $data['content'] = $this->load->view('Administrator/transfer/cash_transfer_pending', $data, true);
+            $this->load->view('Administrator/index', $data);
+        }
+
+
+        public function cashTransferReceived()
+        {
+            $access = $this->mt->userAccess();
+            if(!$access){
+                redirect(base_url());
+            }
+            $data['title'] = "Cash Transfer List";
+            $data['content'] = $this->load->view('Administrator/transfer/cash_received_record', $data, true);
+            $this->load->view('Administrator/index', $data);
+        }
+
+
+         public function getCashReceives()
+        {
+            $data = json_decode($this->input->raw_input_stream);
+
+            if(isset($data->branchId) && $data->branchId != '')
+            {
+                $branchId = $data->branchId;
+            }else {
+                $branchId = $this->session->userdata('BRANCHid');
+            }
+            
+            $branchClause = "";
+            if(isset($data->branch) && $data->branch != ''){
+                $branchClause = " and tm.transfer_from = '$data->branch'";
+            }
+
+            $dateClause = "";
+            if((isset($data->dateFrom) && $data->dateFrom != '') && (isset($data->dateTo) && $data->dateTo != '')){
+                $dateClause = " and tm.transfer_date between '$data->dateFrom' and '$data->dateTo'";
+            }
+
+            $transfersData = $this->db->query("
+                select
+                    tm.*,
+                    b.Brunch_name as transfer_from_name,
+                    e.Employee_Name as transfer_by_name
+                from tbl_cashtransfer tm
+                join tbl_brunch b on b.brunch_id = tm.transfer_from
+                left join tbl_employee e on e.Employee_SlNo = tm.transfer_by
+                where tm.transfer_to = ? $branchClause $dateClause
+                and tm.status != 'd'
+            ",$branchId)->result();
+
+            $transfers = array_values($transfersData);
+
+            echo json_encode($transfers);
+        }
+       
     }

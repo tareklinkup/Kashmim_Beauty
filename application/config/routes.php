@@ -65,6 +65,17 @@ $route['unitupdate'] = 'Administrator/Page/unitupdate';
 $route['unitdelete'] = 'Administrator/Page/unitdelete';
 $route['get_units'] = 'Administrator/Page/getUnits';
 
+
+// Courier 
+
+$route['courier'] = 'Administrator/Page/courier';
+$route['insertcourier'] = 'Administrator/Page/insert_courier';
+$route['courieredit/(:any)'] = 'Administrator/Page/courieredit/$1';
+$route['courierupdate'] = 'Administrator/Page/courierupdate';
+$route['courierdelete'] = 'Administrator/Page/courierdelete';
+$route['get_couriers'] = 'Administrator/Page/getCouriers';
+
+
 $route['color'] = 'Administrator/Page/add_color';
 $route['insertcolor'] = 'Administrator/Page/insert_color';
 $route['colordelete'] = 'Administrator/Page/colordelete';
@@ -476,6 +487,22 @@ $route['get_transfer_details'] = 'Administrator/Transfer/getTransferDetails';
 $route['received_list'] = 'Administrator/Transfer/receivedList';
 $route['get_receives'] = 'Administrator/Transfer/getReceives';
 $route['transfer_invoice/(:any)'] = 'Administrator/Transfer/transferInvoice/$1';
+
+
+
+// Cash Transfer 
+$route['cash_transfer']          = 'Administrator/Transfer/cashTransfer';
+$route['add_cash_transfer']      = 'Administrator/Transfer/addCashTransfer';
+$route['update_cash_transfer']   = 'Administrator/Transfer/updateCashTransfer';
+$route['delete_cash_transfer']   = 'Administrator/Transfer/deleteCashTransfer';
+$route['get_cash_transfers']     = 'Administrator/Transfer/getCashTransfer'; 
+$route['get_cash_transfer_received'] = 'Administrator/Transfer/getCashTransferReceived';  
+$route['cash_transfer_record']     = 'Administrator/Transfer/cashTransferRecord';
+$route['cash_transfer_received'] = 'Administrator/Transfer/cashTransferReceived';
+$route['get_cash_receives']      = 'Administrator/Transfer/getCashReceives';
+$route['cash_transfer_pending'] = 'Administrator/Transfer/cashTransferPending';
+// $route['get_cash_transfers_pending'] = 'Administrator/Transfer/getCashTransfersPending';
+$route['approve_cash_transfer'] = 'Administrator/Transfer/approveCashTransfer';    
 
 // Banks
 $route['bank_accounts'] = 'Administrator/Account/bankAccounts';

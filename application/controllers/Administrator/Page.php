@@ -173,6 +173,78 @@ class Page extends CI_Controller {
         $units = $this->db->query("select * from tbl_unit where status = 'a'")->result();
         echo json_encode($units);
     }
+
+
+
+    // Couriers All Methods  
+
+    public function courier()  {
+        $access = $this->mt->userAccess();
+        if(!$access){
+            redirect(base_url());
+        }
+        $data['title'] = "Add Courier";
+        $data['content'] = $this->load->view('Administrator/courier', $data, TRUE);
+        $this->load->view('Administrator/index', $data);
+    }
+    
+    public function insert_courier()  {
+        $mail = $this->input->post('couriername');
+        $query = $this->db->query("SELECT Courier_Name from tbl_courier where Courier_Name = '$mail'");
+        
+        if($query->num_rows() > 0){
+            $exists = false;
+           echo json_encode($exists);
+        }
+        else{
+            $data = array(
+                "Courier_Name"              =>$this->input->post('couriername', TRUE),
+                "status"                    =>'a',
+                "AddBy"                     =>$this->session->userdata("FullName"),
+                "AddTime"                   =>date("Y-m-d H:i:s")
+                );
+           $succ =  $this->mt->save_data('tbl_courier',$data);
+		   if($succ){
+			    $msg = true;
+			    echo json_encode($msg);
+		   }
+        }
+    }
+    
+    public function courieredit($id)  {
+        $data['title'] = "Edit Unit";
+        $fld = 'Courier_SlNo';
+        $data['selected'] = $this->Billing_model->select_by_id('tbl_courier', $id,$fld);
+        $data['content'] = $this->load->view('Administrator/edit/courier_edit', $data, TRUE);
+        $this->load->view('Administrator/index', $data);
+    }
+
+    public function courierupdate(){
+        $id = $this->input->post('id');
+        $fld = 'Courier_SlNo';
+            $data = array(
+                "Courier_Name"                         =>$this->input->post('couriername', TRUE),
+                "UpdateBy"                          =>$this->session->userdata("FullName"),
+                "UpdateTime"                        =>date("Y-m-d H:i:s")
+            );
+            if($this->mt->update_data("tbl_courier", $data, $id,$fld)){
+				$msg = true;
+                echo json_encode($msg);
+            } 
+    } 
+
+    public function courierdelete(){
+        $fld = 'Courier_SlNo';
+        $id = $this->input->post('deleted');
+        $this->mt->delete_data("tbl_courier", $id, $fld);
+    } 
+
+    public function getCouriers(){
+        $couriers = $this->db->query("select * from tbl_courier where status = 'a'")->result();
+        echo json_encode($couriers);
+    }
+
+
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     //Area 
     public function area()  {
@@ -884,13 +956,13 @@ class Page extends CI_Controller {
      public function select_brand_by_category($id){
         $brand = $this->Billing_model->select_brand_by_category($id);
 		?>
-		  <option value="">Select Brand</option>
-		<?php
+<option value="">Select Brand</option>
+<?php
 		foreach($brand as $vbrand)
 		{
 		?>
-			<option value="<?php echo $vbrand->brand_SiNo; ?>"><?php echo $vbrand->brand_name; ?></option>
-		<?php
+<option value="<?php echo $vbrand->brand_SiNo; ?>"><?php echo $vbrand->brand_name; ?></option>
+<?php
 		}
     }
 	
@@ -899,45 +971,47 @@ class Page extends CI_Controller {
 		 {
 				$category = $this->Billing_model->select_category($this->session->userdata('BRANCHid'));
 				?>
-				<select name="pCategory" id="pCategory" style="" class="chosen-select form-control"" required>
-					<option value="All">All</option>
-				<?php
+<select name="pCategory" id="pCategory" style="" class="chosen-select form-control"" required>
+					<option value=" All">All</option>
+    <?php
 				foreach($category as $vcategory)
 				{
 				?>
-					<option value="<?php echo $vcategory->ProductCategory_SlNo; ?>"><?php echo $vcategory->ProductCategory_Name; ?></option>
-				<?php }?>
-				</select>
-				
-				<?php 
+    <option value="<?php echo $vcategory->ProductCategory_SlNo; ?>"><?php echo $vcategory->ProductCategory_Name; ?>
+    </option>
+    <?php }?>
+</select>
+
+<?php 
 				}else{
 					$category = $this->Billing_model->select_category_by_brand($id);
 					//echo "<pre>";print_r($category );exit;
 					?>
-						<select name="pCategory" id="pCategory" class="chosen-select form-control"" required>
-						<option value="no">Select Category</option>
-					<?php
+<select name="pCategory" id="pCategory" class="chosen-select form-control"" required>
+						<option value=" no">Select Category</option>
+    <?php
 					foreach($category as $vcategory)
 					{
 					?>
-						<option value="<?php echo $vcategory->ProductCategory_SlNo; ?>"><?php echo $vcategory->ProductCategory_Name; ?></option>
-					<?php
+    <option value="<?php echo $vcategory->ProductCategory_SlNo; ?>"><?php echo $vcategory->ProductCategory_Name; ?>
+    </option>
+    <?php
 					}?>
-					</select>
-					<?php
+</select>
+<?php
 				}
 			}
 		
 	  public function select_category_by_branch($id){
 			$category = $this->Billing_model->select_category_by_branch($id);
 			?>
-			<option value="All">Select All</option>
-			<?php
+<option value="All">Select All</option>
+<?php
 			foreach($category as $vcategory)
 			{
 			?>
-				<option value="<?php echo $vcategory->ProductCategory_SlNo; ?>"><?php echo $vcategory->ProductCategory_Name; ?></option>
-			<?php
+<option value="<?php echo $vcategory->ProductCategory_SlNo; ?>"><?php echo $vcategory->ProductCategory_Name; ?></option>
+<?php
 			}
 		}
 

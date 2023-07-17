@@ -179,6 +179,7 @@ class Model_Table extends CI_Model{
                 select ifnull(sum(sm.SaleMaster_PaidAmount), 0) from tbl_salesmaster sm
                 where sm.SaleMaster_branchid= " . $this->session->userdata('BRANCHid') . "
                 and sm.Status = 'a'
+                and sm.payment_type = 'cash'
                 " . ($date == null ? "" : " and sm.SaleMaster_SaleDate < '$date'") . "
             ) as received_sales,
             (
@@ -204,6 +205,13 @@ class Model_Table extends CI_Model{
                 and ct.Tr_branchid= " . $this->session->userdata('BRANCHid') . "
                 " . ($date == null ? "" : " and ct.Tr_date < '$date'") . "
             ) as received_cash,
+
+            (
+                select ifnull(sum(cft.transfer_amount), 0) from tbl_cashtransfer cft
+                where cft.transfer_to= " . $this->session->userdata('BRANCHid') . "
+                and cft.status = 'a'
+                " . ($date == null ? "" : " and cft.transfer_date < '$date'") . "
+            ) as received_fund,
             (
                 select ifnull(sum(bt.amount), 0) from tbl_bank_transactions bt
                 where bt.transaction_type = 'withdraw'
@@ -244,6 +252,7 @@ class Model_Table extends CI_Model{
                 select ifnull(sum(pm.PurchaseMaster_PaidAmount), 0) from tbl_purchasemaster pm
                 where pm.status = 'a'
                 and pm.PurchaseMaster_BranchID= " . $this->session->userdata('BRANCHid') . "
+                and pm.payment_type = 'cash'
                 " . ($date == null ? "" : " and pm.PurchaseMaster_OrderDate < '$date'") . "
             ) as paid_purchase,
             (
@@ -269,6 +278,14 @@ class Model_Table extends CI_Model{
                 and ct.Tr_branchid= " . $this->session->userdata('BRANCHid') . "
                 " . ($date == null ? "" : " and ct.Tr_date < '$date'") . "
             ) as paid_cash,
+
+            (
+                select ifnull(sum(cft.transfer_amount), 0) from tbl_cashtransfer cft
+                where cft.transfer_from= " . $this->session->userdata('BRANCHid') . "
+                " . ($date == null ? "" : " and cft.transfer_date < '$date'") . "
+                and cft.status != 'd'
+            ) as transfer_fund,
+
             (
                 select ifnull(sum(bt.amount), 0) from tbl_bank_transactions bt
                 where bt.transaction_type = 'deposit'
@@ -305,10 +322,10 @@ class Model_Table extends CI_Model{
             ) as buy_asset,
             /* total */
             (
-                select received_sales + received_customer + received_supplier + received_cash + bank_withdraw + loan_received + loan_initial_balance + invest_received + sale_asset
+                select received_sales + received_customer + received_supplier + received_fund + received_cash + bank_withdraw + loan_received + loan_initial_balance + invest_received + sale_asset
             ) as total_in,
             (
-                select paid_purchase + paid_customer + paid_supplier + paid_cash + bank_deposit + employee_payment + loan_payment + invest_payment + buy_asset
+                select paid_purchase + paid_customer + paid_supplier + paid_cash + transfer_fund + bank_deposit + employee_payment + loan_payment + invest_payment + buy_asset
             ) as total_out,
             (
                 select total_in - total_out

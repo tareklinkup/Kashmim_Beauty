@@ -1345,6 +1345,7 @@ class Account extends CI_Controller {
             from tbl_salesmaster sm 
             join tbl_customer c on c.Customer_SlNo = sm.SalseCustomer_IDNo
             where sm.Status = 'a'
+            and sm.payment_type = 'cash'
             and sm.SaleMaster_branchid = '$this->brunch'
             and sm.SaleMaster_SaleDate between '$data->fromDate' and '$data->toDate'
             
@@ -1424,6 +1425,19 @@ class Account extends CI_Controller {
             and bt.branch_id = '$this->brunch'
             and bt.transaction_type = 'Receive'
             and bt.transaction_date between '$data->fromDate' and '$data->toDate'
+            
+                 UNION
+            
+            select 
+                cft.transfer_id as id,
+                cft.transfer_date as date,
+                cft.note as description,
+                cft.transfer_amount as in_amount,
+                0.00 as out_amount
+            from tbl_cashtransfer cft
+            where cft.transfer_to = '$this->brunch'
+            and cft.status = 'a'
+            and cft.transfer_date between '$data->fromDate' and '$data->toDate'
             
             UNION
             select 
@@ -1571,6 +1585,20 @@ class Account extends CI_Controller {
             and bt.status = 1
             and bt.branch_id = '$this->brunch'
             and bt.transaction_date between '$data->fromDate' and '$data->toDate'
+
+            
+            UNION
+            
+            select 
+                cft.transfer_id as id,
+                cft.transfer_date as date,
+                cft.note as description,
+                0.00 as in_amount,
+                cft.transfer_amount as out_amount
+            from tbl_cashtransfer cft
+            where cft.transfer_from = '$this->brunch'
+            and cft.status != 'd'
+            and cft.transfer_date between '$data->fromDate' and '$data->toDate'
 
             UNION
             

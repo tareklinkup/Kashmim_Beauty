@@ -123,11 +123,14 @@ class Sales extends CI_Controller {
                 'employee_id' => $data->sales->employeeId,
                 'SaleMaster_SaleDate' => $data->sales->salesDate,
                 'SaleMaster_SaleType' => $data->sales->salesType,
+                'account_id' => $data->sales->account_id,
+                'payment_type' => $data->sales->payment_type,
+                'courierId' => $data->sales->courierId,
+                'courierNo' => $data->sales->courierNo,
                 'SaleMaster_TotalSaleAmount' => $data->sales->total,
                 'SaleMaster_TotalDiscountAmount' => $data->sales->discount,
                 'SaleMaster_TaxAmount' => $data->sales->vat,
                 'SaleMaster_Freight' => $data->sales->transportCost,
-                'SaleMaster_SubTotalAmount' => $data->sales->subTotal,
                 'SaleMaster_PaidAmount' => $data->sales->paid,
                 'SaleMaster_DueAmount' => $data->sales->due,
                 'SaleMaster_Previous_Due' => $data->sales->previousDue,
@@ -168,6 +171,29 @@ class Sales extends CI_Controller {
                     and branch_id = ?
                 ", [$cartProduct->quantity, $cartProduct->productId, $this->session->userdata('BRANCHid')]);
             }
+
+
+             // bank payment
+            if(isset($data->sales->account_id)) {
+                $bank = array(
+                    'account_id' => $data->sales->account_id,
+                    'sale_id' => $salesId,
+                    'transaction_date' => $data->sales->salesDate,
+                    'transaction_type' => 'deposit',
+                    'amount' => $data->sales->paid,
+                    'note' => 'Sales amount payment in bank',
+                    'saved_by' =>  $this->session->userdata('userId'),
+                    'saved_datetime' => date('Y-m-d H:i:s'),
+                    'branch_id' => $this->session->userdata('BRANCHid'),
+                    'status' => 1
+                );
+
+                $this->db->insert('tbl_bank_transactions', $bank);
+            }
+
+            
+
+            
             $currentDue = $data->sales->previousDue + ($data->sales->total - $data->sales->paid);
             //Send sms
             $customerInfo = $this->db->query("select * from tbl_customer where Customer_SlNo = ?", $customerId)->row();
@@ -355,11 +381,15 @@ class Sales extends CI_Controller {
             c.Customer_Address,
             c.Customer_Type,
             e.Employee_Name,
-            br.Brunch_name
+            cr.Courier_Name,
+            br.Brunch_name,
+            ba.account_name
             from tbl_salesmaster sm
             left join tbl_customer c on c.Customer_SlNo = sm.SalseCustomer_IDNo
             left join tbl_employee e on e.Employee_SlNo = sm.employee_id
             left join tbl_brunch br on br.brunch_id = sm.SaleMaster_branchid
+            left join tbl_courier cr on cr.Courier_SlNo = sm.courierId
+            left join tbl_bank_accounts ba on ba.account_id = sm.account_id
             where sm.SaleMaster_branchid = '$branchId'
             and sm.Status = 'a'
             $clauses
@@ -410,9 +440,13 @@ class Sales extends CI_Controller {
                 'employee_id' => $data->sales->employeeId,
                 'SaleMaster_SaleDate' => $data->sales->salesDate,
                 'SaleMaster_SaleType' => $data->sales->salesType,
+                'account_id' => $data->sales->account_id,
+                'payment_type' => $data->sales->payment_type,
                 'SaleMaster_TotalSaleAmount' => $data->sales->total,
                 'SaleMaster_TotalDiscountAmount' => $data->sales->discount,
                 'SaleMaster_TaxAmount' => $data->sales->vat,
+                'courierId' => $data->sales->courierId,
+                'courierNo' => $data->sales->courierNo,
                 'SaleMaster_Freight' => $data->sales->transportCost,
                 'SaleMaster_SubTotalAmount' => $data->sales->subTotal,
                 'SaleMaster_PaidAmount' => $data->sales->paid,
@@ -463,6 +497,44 @@ class Sales extends CI_Controller {
                     and branch_id = ?
                 ", [$cartProduct->quantity, $cartProduct->productId, $this->session->userdata('BRANCHid')]);
             }
+
+                      if(isset($data->sales->account_id)) {
+                // check previous payment 
+                $checkBankPayment = $this->db->query("select * from tbl_bank_transactions where sale_id = ? and branch_id = ? and status = 1", [$salesId, $this->session->userdata('BRANCHid')]);
+                if($checkBankPayment->num_rows() > 0) {
+                    $bank = array(
+                        'account_id' => $data->sales->account_id,
+                        'sale_id' => $salesId,
+                        'transaction_date' => $data->sales->salesDate,
+                        'transaction_type' => 'deposit',
+                        'amount' => $data->sales->paid,
+                        'note' => 'Sales amount payment in bank',
+                        'saved_by' =>  $this->session->userdata('userId'),
+                        'saved_datetime' => date('Y-m-d H:i:s'),
+                        'branch_id' => $this->session->userdata('BRANCHid'),
+                        'status' => 1
+                    );
+            
+                    $this->db->where('sale_id', $salesId)->update('tbl_bank_transactions', $bank);
+                } else {
+                    $bank = array(
+                        'account_id' => $data->sales->account_id,
+                        'sale_id' => $salesId,
+                        'transaction_date' => $data->sales->salesDate,
+                        'transaction_type' => 'deposit',
+                        'amount' => $data->sales->paid,
+                        'note' => 'Sales amount payment in bank',
+                        'saved_by' =>  $this->session->userdata('userId'),
+                        'saved_datetime' => date('Y-m-d H:i:s'),
+                        'branch_id' => $this->session->userdata('BRANCHid'),
+                        'status' => 1
+                    );
+            
+                    $this->db->insert('tbl_bank_transactions', $bank);
+                }
+            }
+
+            
     
             $res = ['success'=>true, 'message'=>'Sales Updated', 'salesId'=>$salesId];
 
@@ -1268,40 +1340,42 @@ class Sales extends CI_Controller {
     
      function select_customerName()  { 
        ?>
-       <div class="form-group">
-        <label class="col-sm-2 control-label no-padding-right" for="customerID"> Select Customer </label>
-        <div class="col-sm-3">
-            <select name="" id="customerID" data-placeholder="Choose a Customer..." class="chosen-select" >
-                <option value="All">All</option>
-                <?php 
+<div class="form-group">
+    <label class="col-sm-2 control-label no-padding-right" for="customerID"> Select Customer </label>
+    <div class="col-sm-3">
+        <select name="" id="customerID" data-placeholder="Choose a Customer..." class="chosen-select">
+            <option value="All">All</option>
+            <?php 
                 $sql = $this->db->query("SELECT * FROM tbl_customer where Customer_brunchid = '".$this->sbrunch."' AND Customer_Type = 'Local' order by Customer_Name asc");
                 $row = $sql->result();
                 foreach($row as $row){ ?>
 
-                <option value="<?php echo $row->Customer_SlNo; ?>"><?php echo $row->Customer_Name; ?> (<?php echo $row->Customer_Code; ?>)</option>
-                <?php } ?>
-            </select>
-        </div>
+            <option value="<?php echo $row->Customer_SlNo; ?>"><?php echo $row->Customer_Name; ?>
+                (<?php echo $row->Customer_Code; ?>)</option>
+            <?php } ?>
+        </select>
     </div>
-       <?php
+</div>
+<?php
     }
     function select_InvCustomerName()  {
         ?>
-        <div class="form-group">
-            <div class="col-sm-3">
-                <select id="Salestype" class="chosen-select" name="Salestype">
-                    <option value="All">All</option>
-                    <?php
+<div class="form-group">
+    <div class="col-sm-3">
+        <select id="Salestype" class="chosen-select" name="Salestype">
+            <option value="All">All</option>
+            <?php
                     $sql = $this->db->query("SELECT * FROM tbl_customer where Customer_brunchid = '".$this->sbrunch."' AND Customer_Type = 'Local' order by Customer_Name asc");
                     $row = $sql->result();
                     foreach($row as $row){ ?>
 
-                        <option value="<?php echo $row->Customer_SlNo; ?>"><?php echo $row->Customer_Name; ?> (<?php echo $row->Customer_Code; ?>)</option>
-                    <?php } ?>
-                </select>
-            </div>
-        </div>
-        <?php
+            <option value="<?php echo $row->Customer_SlNo; ?>"><?php echo $row->Customer_Name; ?>
+                (<?php echo $row->Customer_Code; ?>)</option>
+            <?php } ?>
+        </select>
+    </div>
+</div>
+<?php
     }
     function sales_customerName()  {
         $id = $this->input->post('customerID');
@@ -1748,6 +1822,10 @@ class Sales extends CI_Controller {
 
             /*Delete Sale Master Data*/
             $this->db->set('Status', 'd')->where('SaleMaster_SlNo', $saleId)->update('tbl_salesmaster');
+
+            /*Delete Bank sale Transaction Data*/
+            $this->db->set('status', 0)->where('sale_id', $saleId)->update('tbl_bank_transactions');
+            
             $res = ['success'=>true, 'message'=>'Sale deleted'];
         } catch (Exception $ex){
             $res = ['success'=>false, 'message'=>$ex->getMessage()];
